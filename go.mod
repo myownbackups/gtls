@@ -5,8 +5,8 @@ go 1.26.0
 require (
 	github.com/caddyserver/certmagic v0.25.2
 	github.com/gospider007/conf v0.0.0-20260211061113-10f6d79db40c
-	github.com/gospider007/ja3 v0.0.0-20260213010000-2fe4670ccacc
-	github.com/gospider007/tools v0.0.0-20260211061019-053e0e2f25af
+	github.com/gospider007/ja3 v0.0.0-20260224011238-05e8f8be8092
+	github.com/gospider007/tools v0.0.0-20260224011237-7797dedbca5f
 	github.com/refraction-networking/utls v1.8.2
 )
 
