@@ -219,7 +219,7 @@ func CreateCertWithName(serverName string, rootCert *x509.Certificate, rootKey *
 			OrganizationalUnit: []string{"MITM"},
 		},
 		NotBefore:          time.Now(),
-		NotAfter:           time.Now().AddDate(100, 0, 0), // 1年有效期
+		NotAfter:           time.Now().AddDate(100, 0, 0), // 100年有效期
 		KeyUsage:           x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
