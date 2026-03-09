@@ -18,14 +18,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/gospider007/conf"
 	"github.com/gospider007/ja3"
 	"github.com/gospider007/tools"
+	lru "github.com/hashicorp/golang-lru/v2"
 	utls "github.com/refraction-networking/utls"
+	"golang.org/x/sync/singleflight"
 )
 
 var Https = certmagic.HTTPS
@@ -39,6 +40,7 @@ func MagicTLS(domainNames []string) (*tls.Config, error) {
 
 var caCert *x509.Certificate
 var caPrivKey *ecdsa.PrivateKey
+var certCache *lru.Cache[string, *tls.Certificate]
 
 func init() {
 	var err error
@@ -46,7 +48,7 @@ func init() {
 	if err != nil {
 		log.Panic(err)
 	}
-
+	certCache, _ = lru.New[string, *tls.Certificate](10000)
 }
 
 func LoadRootCertWithLocal(random bool) (*x509.Certificate, *ecdsa.PrivateKey, error) {
@@ -192,60 +194,73 @@ func CreateRootCert() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	return caCert, caPrivKey, nil
 }
 
-var certCache = map[string]*tls.Certificate{}
-var certLock sync.Mutex
+var certSf singleflight.Group
 
 func CreateCertWithName(serverName string, rootCert *x509.Certificate, rootKey *ecdsa.PrivateKey) (*tls.Certificate, error) {
 	if rootCert == nil || rootKey == nil {
 		rootCert = caCert
 		rootKey = caPrivKey
 	}
-	certLock.Lock()
-	defer certLock.Unlock()
-	value, ok := certCache[serverName]
-	if ok {
-		return value, nil
+	if cert, ok := certCache.Get(serverName); ok {
+		return cert, nil
 	}
-	serialNumber, err := generateSerialNumber()
-	if err != nil {
-		return nil, err
-	}
-	// 服务器证书模板
-	serverTemplate := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			Country:            []string{"CN"},
-			Organization:       []string{"MITM Proxy Co"},
-			OrganizationalUnit: []string{"MITM"},
-		},
-		NotBefore:          time.Now(),
-		NotAfter:           time.Now().AddDate(100, 0, 0), // 100年有效期
-		KeyUsage:           x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
-	}
-	if serverName == "" {
-		serverTemplate.IPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
-	} else {
-		serverTemplate.DNSNames = []string{serverName}
-	}
+	v, err, _ := certSf.Do(serverName, func() (any, error) {
+		if cert, ok := certCache.Get(serverName); ok {
+			return cert, nil
+		}
+		serialNumber, err := generateSerialNumber()
+		if err != nil {
+			return nil, err
+		}
+		// 服务器证书模板
+		serverTemplate := &x509.Certificate{
+			SerialNumber: serialNumber,
+			Subject: pkix.Name{
+				Country:            []string{"CN"},
+				Organization:       []string{"MITM Proxy Co"},
+				OrganizationalUnit: []string{"MITM"},
+			},
+			NotBefore:          time.Now(),
+			NotAfter:           time.Now().AddDate(100, 0, 0), // 100年有效期
+			KeyUsage:           x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			SignatureAlgorithm: x509.ECDSAWithSHA256,
+		}
+		if serverName == "" {
+			serverTemplate.IPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
+		} else {
+			serverTemplate.DNSNames = []string{serverName}
+		}
 
-	// 生成服务器私钥（ECDSA 更快，RSA 兼容性更好）
-	serverPrivKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		// 生成服务器私钥（ECDSA 更快，RSA 兼容性更好）
+		serverPrivKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		// 用 CA 签发服务器证书
+		serverCertBytes, err := x509.CreateCertificate(
+			rand.Reader,
+			serverTemplate,
+			rootCert,
+			&serverPrivKey.PublicKey,
+			rootKey)
+		if err != nil {
+			return nil, err
+		}
+		cert := &tls.Certificate{
+			Certificate: [][]byte{
+				serverCertBytes,
+				rootCert.Raw,
+			},
+			PrivateKey: serverPrivKey,
+		}
+		certCache.Add(serverName, cert)
+		return cert, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	// 用 CA 签发服务器证书
-	serverCertBytes, err := x509.CreateCertificate(rand.Reader, serverTemplate, rootCert, &serverPrivKey.PublicKey, rootKey)
-	if err != nil {
-		return nil, err
-	}
-	cert := &tls.Certificate{
-		Certificate: [][]byte{serverCertBytes},
-		PrivateKey:  serverPrivKey,
-	}
-	certCache[serverName] = cert
-	return cert, nil
+	return v.(*tls.Certificate), nil
 }
 
 func GetCertificate(chi *tls.ClientHelloInfo, rootCert *x509.Certificate, rootKey *ecdsa.PrivateKey) (*tls.Certificate, error) {

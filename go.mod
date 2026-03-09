@@ -7,7 +7,9 @@ require (
 	github.com/gospider007/conf v0.0.0-20260304014953-1bc774a8226f
 	github.com/gospider007/ja3 v0.0.0-20260309023952-c902f978357c
 	github.com/gospider007/tools v0.0.0-20260304014714-6d157d4524d2
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/refraction-networking/utls v1.8.2
+	golang.org/x/sync v0.20.0
 )
 
 require (
@@ -41,7 +43,6 @@ require (
 	golang.org/x/image v0.36.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
