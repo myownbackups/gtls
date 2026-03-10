@@ -6,7 +6,7 @@ require (
 	github.com/caddyserver/certmagic v0.25.2
 	github.com/gospider007/conf v0.0.0-20260310033936-7745d68902c2
 	github.com/gospider007/ja3 v0.0.0-20260310033938-34582e55a432
-	github.com/gospider007/tools v0.0.0-20260310033745-11c3e9922032
+	github.com/gospider007/tools v0.0.0-20260310134037-bb82a0cd2b7b
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/refraction-networking/utls v1.8.2
 	golang.org/x/sync v0.20.0
