@@ -359,11 +359,16 @@ func AddTls(ctx context.Context, conn net.Conn, host string, tlsConfig *tls.Conf
 		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
 	}
 	tlsConn = tls.Client(conn, tlsConfig)
-	return tlsConn, tlsConn.HandshakeContext(ctx)
+	err := tlsConn.HandshakeContext(ctx)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return tlsConn, err
 }
 
 var specClient = ja3.NewClient()
 
 func AddJa3Tls(ctx context.Context, conn net.Conn, host string, spec *ja3.TlsSpec, tlsConfig *utls.Config, forceHttp1 bool) (*utls.UConn, error) {
-	return specClient.Client(ctx, conn, spec, tlsConfig, GetServerName(host), forceHttp1)
+	return specClient.Client(ctx, conn, spec, tlsConfig.Clone(), GetServerName(host), forceHttp1)
 }
