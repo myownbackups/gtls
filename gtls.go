@@ -25,7 +25,7 @@ import (
 	"github.com/gospider007/ja3"
 	"github.com/gospider007/tools"
 	lru "github.com/hashicorp/golang-lru/v2"
-	utls "github.com/refraction-networking/utls"
+	utls "github.com/gospider007/ja3/utls"
 	"golang.org/x/sync/singleflight"
 )
 
