@@ -3,7 +3,7 @@ module github.com/gospider007/gtls
 go 1.26.0
 
 require (
-	github.com/caddyserver/certmagic v0.25.3
+	github.com/caddyserver/certmagic v0.25.4
 	github.com/gospider007/conf v0.0.0-20260620150121-7a5dd6354958
 	github.com/gospider007/ja3 v0.0.0-20260620150234-4f1c43a8a6fd
 	github.com/gospider007/tools v0.0.0-20260620145938-6b8c82109b5f
@@ -31,7 +31,7 @@ require (
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mileusna/useragent v1.3.5 // indirect
 	github.com/minio/minlz v1.1.1 // indirect
-	github.com/onsi/ginkgo/v2 v2.31.0 // indirect
+	github.com/onsi/ginkgo/v2 v2.32.0 // indirect
 	github.com/refraction-networking/uquic v0.0.6 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
